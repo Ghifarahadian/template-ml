@@ -11,3 +11,4 @@
 .sagemaker-jumpstart-tasks-status.json
 .yarnrc
 */.ipynb_checkpoints
+*/__pycache__

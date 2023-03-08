@@ -14,13 +14,14 @@ import pickle
 import json
 import os
 
-# Suppressing warnings
-import warnings
-warnings.simplefilter("ignore")
+# TODO: Perhaps there is a way to add this path automatically?
+import sys
+sys.path.append('/home/ec2-user/template-ml/')
+from src.utils.utils import ModelType, get_lgbm_model
 
-# To be configured
+# TODO: configure here
 target = "Strength"
-target_type = "regression"
+model_type = ModelType.REGRESSION
 
 # Loading the data
 train = pd.read_csv("data/processed/train/train.csv")
@@ -30,40 +31,22 @@ features = [col for col in train.columns if col != target]
 n_classes = len(train[target].unique())
 
 def objective_lgbm(trial):
-    params_lgbm = {}
-    if target_type == "classification":
-        params_lgbm = {
-            'objective' : "multiclass",
-            'metric' :'multi_logloss',
-            'lambda_l1': trial.suggest_float('lambda_l1', 0.0, 1.0),
-            'lambda_l2': trial.suggest_float('lambda_l2', 1.0, 10.0),
-            'num_leaves': trial.suggest_int('num_leaves', 10, 100),
-            'feature_fraction': trial.suggest_float('feature_fraction', 0.0, 1.0),
-            'bagging_fraction': trial.suggest_float('bagging_fraction', 0.0, 1.0),
-            'bagging_freq': trial.suggest_int('bagging_freq', 1, 10),
-            'min_child_samples': trial.suggest_int('min_child_samples', 10, 100),
-            'min_data_in_leaf': trial.suggest_int('min_data_in_leaf', 10, 100),
-            'max_depth': trial.suggest_int('max_depth', 1, 10),
-            'num_iterations': 10000
-        }
-    elif target_type == "regression":
-        params_lgbm = {
-            'objective': 'regression',
-            'metric': 'rmse',
-            'feature_pre_filter': False,
-            'lambda_l1': trial.suggest_float('lambda_l1', 0.0, 1.0),
-            'lambda_l2': trial.suggest_float('lambda_l2', 0.0, 1.0),
-            'num_leaves': trial.suggest_int('num_leaves', 2, 10),
-            'feature_fraction': trial.suggest_float('feature_fraction', 0.0, 1.0),
-            'bagging_fraction': trial.suggest_float('bagging_fraction', 0.0, 1.0),
-            'bagging_freq': trial.suggest_int('bagging_freq', 1, 10),
-            'min_child_samples': trial.suggest_int('min_child_samples', 10, 100),
-            'num_iterations': 10000,
-            'early_stopping_round': 100
-        }
-    else:
-        raise Exception("target_type is not recognized")
-        
+    # TODO: configure here
+    params_lgbm = {
+        'objective': 'regression',
+        'metric': 'rmse',
+        'feature_pre_filter': False,
+        'lambda_l1': trial.suggest_float('lambda_l1', 0.0, 1.0),
+        'lambda_l2': trial.suggest_float('lambda_l2', 0.0, 1.0),
+        'num_leaves': trial.suggest_int('num_leaves', 2, 10),
+        'feature_fraction': trial.suggest_float('feature_fraction', 0.0, 1.0),
+        'bagging_fraction': trial.suggest_float('bagging_fraction', 0.0, 1.0),
+        'bagging_freq': trial.suggest_int('bagging_freq', 1, 10),
+        'min_child_samples': trial.suggest_int('min_child_samples', 10, 100),
+        'num_iterations': 10000,
+        'early_stopping_round': 100
+    }
+
     cv = KFold(5, shuffle=True, random_state=42)
 
     fold_scores = []
@@ -71,13 +54,8 @@ def objective_lgbm(trial):
         X_train, y_train = train.loc[train_idx, features],train.loc[train_idx, target]
         X_val, y_val = train.loc[val_idx, features],train.loc[val_idx, target]
 
-        model = None
-        if target_type == "classification":
-            model = lgbm.LGBMClassifier(**params_lgbm)
-        elif target_type == "regression":
-            model = lgbm.LGBMRegressor(**params_lgbm)
-        else:
-            raise Exception("target_type is not recognized")
+        model = get_lgbm_model(model_type, params_lgbm)
+
         model.fit(X_train,
                   y_train,
                   eval_set=[(X_val, y_val)],
@@ -92,15 +70,9 @@ def objective_lgbm(trial):
     return np.mean(fold_scores)
 
 study = optuna.create_study(direction='minimize', sampler = TPESampler())
-study.optimize(func=objective_lgbm, n_trials=1)
+study.optimize(func=objective_lgbm, n_trials=1000)
 
-model = None
-if target_type == "classification":
-    model = lgbm.LGBMClassifier(**study.best_params)
-elif target_type == "regression":
-    model = lgbm.LGBMRegressor(**study.best_params)
-else:
-    raise Exception("target_type is not recognized")
+model = get_lgbm_model(model_type, study.best_params)
 
 model.fit(train.loc[:, features],
                  train.loc[:, target])
