@@ -14,6 +14,10 @@ import pickle
 import json
 import os
 
+# Suppressing warnings
+import warnings
+warnings.simplefilter("ignore")
+
 # TODO: Perhaps there is a way to add this path automatically?
 import sys
 sys.path.append('/home/ec2-user/template-ml/')
