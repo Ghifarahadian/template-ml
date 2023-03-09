@@ -1,0 +1,1 @@
+{"lambda_l1": 9.986760874931699, "lambda_l2": 6.33105624847442, "num_leaves": 62, "learning_rate": 0.02415157956170714, "max_depth": 3, "n_estimators": 1071, "min_child_weight": 48.682323849194, "subsample": 0.5, "colsample_bytree": 0.4, "min_child_samples": 52}

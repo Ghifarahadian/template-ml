@@ -36,19 +36,35 @@ n_classes = len(train[target].unique())
 
 def objective_lgbm(trial):
     # TODO: configure here
+    # params_lgbm = {
+    #     'objective': 'regression',
+    #     'metric': 'rmse',
+    #     'feature_pre_filter': False,
+    #     'lambda_l1': trial.suggest_float('lambda_l1', 0.0, 1.0),
+    #     'lambda_l2': trial.suggest_float('lambda_l2', 0.0, 1.0),
+    #     'num_leaves': trial.suggest_int('num_leaves', 2, 10),
+    #     #'feature_fraction': trial.suggest_float('feature_fraction', 0.0, 1.0),
+    #     'bagging_fraction': trial.suggest_float('bagging_fraction', 0.0, 1.0),
+    #     'bagging_freq': trial.suggest_int('bagging_freq', 1, 10),
+    #     #'min_child_samples': trial.suggest_int('min_child_samples', 10, 100),
+    #     'num_iterations': 1000,
+    #     'early_stopping_round': 100
+    # }
+
     params_lgbm = {
-        'objective': 'regression',
-        'metric': 'rmse',
-        'feature_pre_filter': False,
-        'lambda_l1': trial.suggest_float('lambda_l1', 0.0, 1.0),
-        'lambda_l2': trial.suggest_float('lambda_l2', 0.0, 1.0),
-        'num_leaves': trial.suggest_int('num_leaves', 2, 10),
-        'feature_fraction': trial.suggest_float('feature_fraction', 0.0, 1.0),
-        'bagging_fraction': trial.suggest_float('bagging_fraction', 0.0, 1.0),
-        'bagging_freq': trial.suggest_int('bagging_freq', 1, 10),
-        'min_child_samples': trial.suggest_int('min_child_samples', 10, 100),
-        'num_iterations': 10000,
-        'early_stopping_round': 100
+        'lambda_l1' : trial.suggest_float('lambda_l1', 1e-3, 10.0),
+        'lambda_l2' : trial.suggest_float('lambda_l2', 1e-3, 10.0),
+        'num_leaves' : trial.suggest_int('num_leaves' , 40 , 70),
+        'learning_rate' : trial.suggest_float('learning_rate' , 0.008 , 0.04),
+        'max_depth' : trial.suggest_int('max_depth', 3 , 15),
+        'n_estimators' : trial.suggest_int('n_estimators', 100 , 2000),
+        'min_child_weight': trial.suggest_float('min_child_weight', 1e-4, 100),
+        'subsample': trial.suggest_float('subsample', 0.5, 0.9, step=0.05), 
+        'colsample_bytree': trial.suggest_float('colsample_bytree', 0.15, 0.9, step=0.05),
+        'min_child_samples' : trial.suggest_int('min_child_samples', 20, 65),
+        'metric' : 'rmse',
+        'subsample_freq' : 1,
+#         'device_type' : 'gpu',
     }
 
     cv = KFold(5, shuffle=True, random_state=42)
@@ -63,7 +79,7 @@ def objective_lgbm(trial):
         model.fit(X_train,
                   y_train,
                   eval_set=[(X_val, y_val)],
-                  early_stopping_rounds=50,
+                  early_stopping_rounds=100,
                   verbose=500)
 
         pred_val = model.predict(X_val)
